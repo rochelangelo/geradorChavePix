@@ -59,38 +59,41 @@ class MercadoPagoPixManager:
 
         # Tenta clicar no botão "Cadastrar chave" ou alternativo "Gerenciar chaves Pix"
         try:
-            WebDriverWait(self.driver, 10).until(
+            WebDriverWait(self.driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "/html/body/div/main/section/div/section[1]/div/div/div/div/button"))
             ).click()
         except:
             caminho_secundario = True
             print("Botão 'Cadastrar chave' não encontrado. Tentando o processo alternativo...")
-            WebDriverWait(self.driver, 15).until(
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            WebDriverWait(self.driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "/html/body/div/main/section/div/section[2]/div/div/div/div/button"))
             ).click()
-            WebDriverWait(self.driver, 10).until(
+            time.sleep(2)
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            WebDriverWait(self.driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/section/div/div/div[3]/button"))
             ).click()
 
         # Cadastrar com email
-        WebDriverWait(self.driver, 10).until(
+        WebDriverWait(self.driver, 5).until(
             EC.element_to_be_clickable((By.XPATH, "/html/body/div/main/section/div/div/section/div/div[3]/ul/li/button"))
         ).click()
 
         if caminho_secundario:
             self.inserir_email(email_gerado, "/html/body/div/main/section/div/div/div[1]/div/input")
         else:
-            WebDriverWait(self.driver, 10).until(
+            WebDriverWait(self.driver, 5).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "/html/body/div/main/section/div/div/div/section/div/div/div[2]/ul/li/button"))
             ).click()
             self.inserir_email(email_gerado, "/html/body/div/main/section/div/div/div[1]/div/input")
 
-        WebDriverWait(self.driver, 10).until(
+        WebDriverWait(self.driver, 5).until(
             EC.element_to_be_clickable((By.XPATH, "/html/body/div/main/section/div/div/div[2]/button"))
         ).click()
 
-        WebDriverWait(self.driver, 10).until(
+        WebDriverWait(self.driver, 15).until(
             EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/main/section/div/div/div/div[2]/button"))
         ).click()
 
@@ -102,7 +105,7 @@ class MercadoPagoPixManager:
             time.sleep(2)
             self.inserir_codigo_verificacao(codigo_verificacao)
             time.sleep(1)
-            WebDriverWait(self.driver, 10).until(
+            WebDriverWait(self.driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "/html/body/main/div/div[2]/div/form/button[1]"))
             ).click()
             time.sleep(5)
@@ -116,7 +119,7 @@ class MercadoPagoPixManager:
         time.sleep(2)
         # Clique no botão "Gerenciar chaves" ou equivalente
         try:
-            WebDriverWait(self.driver, 15).until(
+            WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "/html/body/div/main/section/div/section[2]/div/div/div/div/button"))
             ).click()
@@ -126,32 +129,33 @@ class MercadoPagoPixManager:
 
         time.sleep(2)
 
-        try:
-            # Aguarda a presença dos itens de chave Pix
-            chaves_pix_itens = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, "andes-list__item"))
-            )
-        except TimeoutException:
-            print("Não há mais chaves Pix para excluir.")
-            return
+        while True:
+            try:
+                # Aguarda a presença dos itens de chave Pix
+                chaves_pix_itens = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_all_elements_located((By.CLASS_NAME, "andes-list__item"))
+                )
+            except TimeoutException:
+                print("Não há mais chaves Pix para excluir.")
+                break  # Sai do loop se não houver mais itens
 
-        if not chaves_pix_itens:
-            print("Não há mais chaves Pix para excluir.")
-            return
-
-        index_div = 1
-        for chave_item in chaves_pix_itens:
+            if not chaves_pix_itens:
+                print("Não há mais chaves Pix para excluir.")
+                break
 
             try:
-                # Encontrar o botão de menu (dropdown) dentro do item
-                menu_botao = chave_item.find_element(By.XPATH, "/html/body/div[1]/main/section/div/div/div[2]/div/div[2]/ul/div[1]/div/li/div/div/span/span/div/div/div/i")
+                time.sleep(1)
+                # Encontra e clica no botão de menu (dropdown) dentro do primeiro item
+                menu_botao = chaves_pix_itens[0].find_element(By.CSS_SELECTOR, '.andes-tooltip__trigger')
                 menu_botao.click()
                 print("Abriu o menu dropdown da chave Pix.")
-                time.sleep(2)
+                time.sleep(1)
+
                 # Aguarda o menu aparecer e clica na opção 'Excluir chave'
                 excluir_opcao = WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH,
-                                                "/html/body/div[1]/main/section/div/div/div[2]/div/div[2]/ul/div[1]/div/li/div/div/span/span/div/div/div[2]/div/div/div/div/div[2]/div/div[2]/div"))
+                    EC.element_to_be_clickable((
+                        By.XPATH, "//div[contains(@class, 'andes-tooltip__actions')]//div[contains(@class, 'styles__StyledOptionContainer-sc-3zb691-2') and contains(., 'Excluir chave')]"
+                    ))
                 )
                 excluir_opcao.click()
                 print("Clicou em 'Excluir chave'.")
@@ -163,12 +167,13 @@ class MercadoPagoPixManager:
                 confirmar_botao.click()
                 print("Chave Pix excluída com sucesso.")
 
-                # Aguarda um pequeno intervalo para evitar problemas
-                time.sleep(5)
-                index_div += 1
+                # Aguarda um pequeno intervalo e atualiza a página
+                time.sleep(1)
+                self.driver.refresh()
+
             except Exception as e:
                 print(f"Erro ao excluir a chave Pix: {e}")
-                break
+                break  # Sai do loop em caso de erro
 
     def salvar_cookies(self):
         cookies = self.driver.get_cookies()
